@@ -4,12 +4,14 @@ import image_manipulation
 from multiprocessing import Pool
 from p_tqdm import p_map
 import itertools
-from vae import Autoencoder
+from models import Autoencoder
 from os import listdir
 import numpy as np
 import glob
 from math import ceil, floor
 from os import path, mkdir
+from argparse import ArgumentParser
+
 
 
 # All editable variables
@@ -78,7 +80,7 @@ def create_dir(parent_dir, new_dir_name):
     else:
         mkdir(f'{parent_dir}/{new_dir_name}')
 
-if __name__ == "__main__":
+def data_preparation():
     print("Shuffling Dataset\n")
     np.random.shuffle(all_image_paths)
 
@@ -125,13 +127,40 @@ if __name__ == "__main__":
             image_datasets[i].append(cv2.imread(image_path))
         image_datasets[i] = np.array(image_datasets[i])
 
+    return image_datasets;
+
+if __name__ == "__main__":
+
+    #for either VAE or UPAE
+    parser = ArgumentParser()
+    parser.add_argument('--u', dest='u', action='store_true') # use uncertainty
+    opt = parser.parse_args()
+
+    #preprocessing and augmentation
+    image_datasets = data_preparation()
+
     # Creates and trains the model
     multiplier = 4
-    latentDim=2048
+    latentSize=16
     input_shape=(64,64,3)
-    vae = Autoencoder(input_shape, multiplier, latentDim)
-    vae.compile_AE()
-    model = vae.fit_AE(image_datasets[0], image_datasets[0],
-                epochs=epochs,
-                batch_size=batch_size
-                )
+
+    print("Training AE model")
+    vae = Autoencoder(input_shape, multiplier, latentSize, upae=opt.u)
+    vae.compile_AE(upae=opt.u)
+    model = vae.fit_AE(image_datasets[0], 
+                       image_datasets[0],
+                       x_test=image_datasets[1], #adding validation data for tensorboard 
+                       epochs=epochs,
+                       batch_size=batch_size,
+                       )
+    
+    #validate on validation set (normal images)
+    print("Validating AE Model")
+    score = vae.validate(image_datasets[1], batch_size=32, upae=opt.u)
+
+    #test on an image
+    #print("Testing AE Model")
+    
+
+    #get reconstruction error using MSE
+

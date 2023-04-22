@@ -8,6 +8,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import TensorBoard
 import tensorflow.keras.losses as losses
 import tensorflow as tf
+import torch
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,14 +16,13 @@ import numpy as np
 #custom loss function for UPAE during training
 #gets noise variance and mse. reconstruction loss will be larger 
 #in regions with high variance and smaller in regions with low variance
-def custom_loss(y_true, y_pred):
-    mean, logvar = tf.split(y_pred, num_or_size_splits=2, axis=1)
-    y_true = tf.image.resize(y_true, size=(32, 64))
-    rec_err = tf.math.squared_difference(mean, y_true) #mse
-    loss1 = tf.math.reduce_mean(tf.math.exp(-logvar) * rec_err) 
-    loss2 = tf.math.reduce_mean(logvar)
-    loss = loss1 + loss2
-    return loss
+
+def sampling(args):
+    z_mean, z_log_var = args
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
+    epsilon = K.random_normal(shape=(batch, dim))
+    return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 class Autoencoder:
     def __init__(self, input_shape, multiplier, latentSize, upae=False):
@@ -54,9 +54,15 @@ class Autoencoder:
             latent_enc = Flatten()(x)
             latent_enc = Dense(2048, activation='relu')(latent_enc)
             latent_enc = Dense(latentSize)(latent_enc)
+            z_mean = Dense(latentSize)(latent_enc)
+            z_log_var = Dense(latentSize)(latent_enc)
             latentInputs = Input(shape=(latentSize,))
+            latentOutputs = Lambda(sampling, output_shape=(latentSize,))([z_mean, z_log_var])
+            self.z_mean = z_mean
+            self.z_log_var = z_log_var
+
         else:
-            print("VAE")
+            print("Vanilla AE")
             latent_enc = Flatten()(x)
             latent_enc = Dense(2048, activation='relu')(latent_enc)
             latent_enc = Dense(latentSize*2)(latent_enc)
@@ -98,7 +104,14 @@ class Autoencoder:
         #learning rate similar to Mao et al's
         optimizer = Adam(learning_rate=0.0005)
 
-        #custom loss function for UPAE. 
+        #custom loss function for UPAE with noise variance 
+        def custom_loss(y_true, y_pred):
+            rec_err = tf.math.squared_difference(self.z_mean, y_true) #mse
+            loss1 = tf.math.reduce_mean(tf.math.exp(-self.z_log_var) * rec_err) 
+            loss2 = tf.math.reduce_mean(self.z_log_var)
+            loss = loss1 + loss2
+            return loss
+        
         if upae is True:
             self.autoencoder.compile(optimizer = optimizer, 
                                  loss=custom_loss, 
@@ -113,7 +126,7 @@ class Autoencoder:
         else:
             self.autoencoder.compile(optimizer = optimizer, 
                                  loss='mse', 
-                                 metrics= ['mse', 'accuracy',
+                                 metrics= ['accuracy',
                                            AUC(name="AUC"),
                                            Precision(name="Precision"),
                                            Recall(name='Recall'),
