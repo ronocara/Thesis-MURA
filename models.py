@@ -18,8 +18,11 @@ import numpy as np
 class Autoencoder:
     def __init__(self, input_shape, multiplier, latentSize, upae=False):
         super(Autoencoder, self).__init__()
-        self.upae = upae
+
+        self.upae = upae #gets input if vanilla AE or UPAE
+
         input_layer = Input(shape=input_shape)
+
         x = Conv2D(int(16*multiplier), 4, strides=2, padding='same')(input_layer)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
@@ -39,27 +42,23 @@ class Autoencoder:
         volumeSize = K.int_shape(x)
 
         #Latent representation Encoder
-        
         if upae is True:
             print("UPAE")
             latent_enc = Flatten()(x)
             latent_enc = Dense(2048, activation='relu')(latent_enc)
             latent_enc = Dense(latentSize)(latent_enc)
-            latentInputs = Input(shape=(latentSize,))
             
         else:
             print("Vanilla AE")
             latent_enc = Flatten()(x)
             latent_enc = Dense(2048, activation='relu')(latent_enc)
             latent_enc = Dense(latentSize*2)(latent_enc)
-            latentInputs = Input(shape=(latentSize*2,))
 
         self.encoder = Model(input_layer, latent_enc, name="encoder")
-        mean, logvariance = tf.split(self.encoder,num_or_size_splits=2,axis=1)
-        
+
         #Latent representation Decoder
         print("Decoder")
-        latent_dec = Dense(2048, activation='relu')(latentInputs)
+        latent_dec = Dense(2048, activation='relu')(latent_enc)
         latent_dec = Dense(int(64 * multiplier) * volumeSize[1]*volumeSize[2])(latent_dec)
         latent_dec = Reshape((volumeSize[1], volumeSize[2], int(64*multiplier)))(latent_dec)
         latent_dec = BatchNormalization()(latent_dec)
@@ -80,7 +79,8 @@ class Autoencoder:
         x = Conv2DTranspose(3, 4, strides=2, padding='same')(x)
         outputs = Activation("relu")(x)
                     
-        self.decoder = Model(latentInputs, outputs, name="decoder")
+        self.decoder = Model(latent_enc, outputs, name="decoder")
+
 
         self.autoencoder = Model(input_layer, self.decoder(self.encoder(input_layer)),
             name="autoencoder")
@@ -88,12 +88,16 @@ class Autoencoder:
     #custom loss function for UPAE during training
     #gets noise variance and mse. reconstruction loss will be larger 
     #in regions with high variance and smaller in regions with low variance
-    def custom_loss(self, y_true, y_pred):
-        rec_err = (self.mean - y_true) **2
+    def custom_loss(self, x):
+        activations = encoder(x)
+        mean, logvariance = tf.split(activations,num_or_size_splits=2,axis=1)
+        rec_err = (self.mean - x) **2
         loss1 = tf.math.reduce_mean(tf.math.exp(-self.log_var) * rec_err) 
         loss2 = tf.math.reduce_mean(self.log_var)
         loss = loss1 + loss2
         return loss
+
+
 
     def compile_AE(self,upae=False):
         #learning rate similar to Mao et al's
