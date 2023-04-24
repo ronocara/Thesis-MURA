@@ -46,7 +46,7 @@ num_processes = 8
 # num of epochs
 epochs = 1
 # num of batch size
-batch_size = 32
+batch_size = 64
 
 # Applies various data_cleaning methods chosen from data_cleaning.py
 def apply_data_cleaning(image):
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
     # Creates and trains the model
     multiplier = 4
-    latentSize=16
+    latentSize= 16
     input_shape=(64,64,3)
 
     print("Training AE model")
