@@ -215,11 +215,19 @@ if __name__ == "__main__":
     input_shape=(64,64,3)
 
     encoder, decoder = model(upae=opt.u)
-                
-    optimizer = keras.optimizers.Adam(learning_rate=0.0005)
-    model = VAE(encoder, decoder)
-    model.compile(optimizer=optimizer)
-    model.fit(image_datasets[0], epochs=10, batch_size=64)
+    
+    optimizer = keras.optimizers.Adam(learning_rate=0.00005)
+
+    if opt.u is False:
+        model = VAE(encoder, decoder, opt.u)
+        model.compile(optimizer=optimizer)
+        model.fit(image_datasets[0], epochs=10, batch_size=64)
+        
+    elif opt.u is True:
+        model = UPAE(encoder, decoder, opt.u)
+        model.compile(optimizer=optimizer)
+        model.fit(image_datasets[0], epochs=10, batch_size=64)
+
 
 
     # vae = VAE(encoder, decoder)
