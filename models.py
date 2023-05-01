@@ -89,8 +89,7 @@ class Autoencoder:
     #gets noise variance and mse. reconstruction loss will be larger 
     #in regions with high variance and smaller in regions with low variance
     def custom_loss(self, x):
-        activations = encoder(x)
-        mean, logvariance = tf.split(activations,num_or_size_splits=2,axis=1)
+        mean, logvariance = tf.split(x,num_or_size_splits=2,axis=1)
         rec_err = (self.mean - x) **2
         loss1 = tf.math.reduce_mean(tf.math.exp(-self.log_var) * rec_err) 
         loss2 = tf.math.reduce_mean(self.log_var)
@@ -103,6 +102,14 @@ class Autoencoder:
         #learning rate similar to Mao et al's
         optimizer = Adam(learning_rate=0.0005)
 
+        def custom_loss(self, x):
+                mean, logvariance = tf.split(x,num_or_size_splits=2,axis=1)
+                rec_err = (self.mean - x) **2
+                loss1 = tf.math.reduce_mean(tf.math.exp(-self.log_var) * rec_err) 
+                loss2 = tf.math.reduce_mean(self.log_var)
+                loss = loss1 + loss2
+                return loss
+        
         #custom loss function for UPAE with noise variance
         if upae is True:
             self.autoencoder.compile(optimizer = optimizer, 

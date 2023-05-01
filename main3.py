@@ -11,6 +11,7 @@ import glob
 from math import ceil, floor
 from os import path, mkdir
 from argparse import ArgumentParser
+from models3 import *
 
 
 
@@ -129,6 +130,75 @@ def data_preparation():
 
     return image_datasets;
 
+def model(upae=False):
+    print("Training AE model")
+    upae = upae #gets input if vanilla AE or UPAE
+    input_layer = keras.Input(shape=input_shape)
+
+    x = Conv2D(int(16*multiplier), 4, strides=2, padding='same')(input_layer)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(int(32*multiplier), 4, strides=2, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(int(64*multiplier), 4, strides=2, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(int(64*multiplier), 4, strides=2, padding='same')(x)
+    x = Activation('relu')(x)
+    x = BatchNormalization()(x)
+
+    #Latent representation Encoder
+    if upae is True:
+        print("UPAE")
+        latent_enc = Flatten()(x)
+        latent_enc = Dense(2048, activation='relu')(latent_enc)
+        latent_enc = Dense(latentSize)(latent_enc)
+        z_mean = layers.Dense(latentSize, name="z_mean")(latent_enc)
+        z_log_var = layers.Dense(latentSize, name="z_log_var")(latent_enc)
+        z = Sampling()([z_mean, z_log_var])
+    else:
+        print("Vanilla AE")
+        latent_enc = Flatten()(x)
+        latent_enc = Dense(2048, activation='relu')(latent_enc)
+        latent_enc = Dense(latentSize*2)(latent_enc)
+        z_mean = layers.Dense(latentSize, name="z_mean")(latent_enc)
+        z_log_var = layers.Dense(latentSize, name="z_log_var")(latent_enc)
+        z = Sampling()([z_mean, z_log_var])
+
+    
+    encoder = keras.Model(input_layer, [z_mean, z_log_var, z] , name="encoder")
+    
+    volumeSize = K.int_shape(x)
+    print("Decoder")
+    latent_dec = Dense(2048, activation='relu')(latent_enc)
+    latent_dec = Dense(int(64 * multiplier) * volumeSize[1]*volumeSize[2])(latent_dec)
+    latent_dec = Reshape((volumeSize[1], volumeSize[2], int(64*multiplier)))(latent_dec)
+    latent_dec = BatchNormalization()(latent_dec)
+
+    #decoder
+    
+    x = Conv2DTranspose(int(64*multiplier), 4, strides=2, padding='same')(latent_dec)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv2DTranspose(int(32*multiplier), 4, strides=2, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv2DTranspose(int(16*multiplier), 4, strides=2, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = Conv2DTranspose(3, 4, strides=2, padding='same')(x)
+    outputs = Activation("relu")(x)
+    decoder = keras.Model(latent_enc, outputs, name="decoder")
+
+    return encoder, decoder
+
 if __name__ == "__main__":
 
     #for either VAE or UPAE
@@ -144,25 +214,26 @@ if __name__ == "__main__":
     latentSize= 16
     input_shape=(64,64,3)
 
-    print("Training AE model")
-    vae = Autoencoder(input_shape, multiplier, latentSize, upae=opt.u)
+    encoder, decoder = model(upae=opt.u)
+                
+    optimizer = keras.optimizers.Adam(learning_rate=0.0005)
+    model = VAE(encoder, decoder)
+    model.compile(optimizer=optimizer)
+    model.fit(image_datasets[0], epochs=10, batch_size=64)
 
-    vae.compile_AE(upae=opt.u)
-    
-    model = vae.fit_AE(image_datasets[0], 
-                       image_datasets[0],
-                       x_test=image_datasets[1], #adding validation data for tensorboard 
-                       epochs=epochs,
-                       batch_size=batch_size,
-                       )
-    
+
+    # vae = VAE(encoder, decoder)
+    # vae.compile(optimizer=keras.optimizers.Adam())
+    # vae.fit(image_datasets[0], epochs=30, batch_size=128)
+        
     #validate on validation set (normal images)
-    print("Validating AE Model")
-    score = vae.validate(image_datasets[1], batch_size=32, upae=opt.u)
+    # print("Validating AE Model")
+    # score = vae.validate(image_datasets[1], batch_size=32, upae=opt.u)
 
     #test on an image
     #print("Testing AE Model")
     
 
     #get reconstruction error using MSE
+ 
 

@@ -35,4 +35,10 @@ Train UPAE
 - [Keras AE reference](https://blog.keras.io/building-autoencoders-in-keras.html)
 
 
+how will you get abnormality per each pixel
+
+
+
+
+
 
