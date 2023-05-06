@@ -18,19 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-# class Sampling(layers.Layer):
-#     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-
-#     def call(self, inputs):
-#         z_mean, z_log_var = inputs
-#         batch = 16
-#         dim = 64
-
-#         #the random vector taken from mean and log var
-#         epsilon = tf.keras.backend.random_normal(shape=(batch, dim)) 
-
-#         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
-    
 
 class VAE(keras.Model):
     def __init__(self, encoder, decoder, upae=False, **kwargs):
@@ -86,8 +73,6 @@ class UPAE(keras.Model):
             self.total_loss_tracker,
             self.loss1_tracker,
             self.loss2_tracker
-
-
         ]
 
     #will run during fit()
@@ -102,10 +87,9 @@ class UPAE(keras.Model):
             loss1 = K.mean(K.exp(-z_log_var)*rec_err)
             loss2 = K.mean(z_log_var)
             loss = loss1 + loss2
-            
-               
 
-        #calculate gradients using back propagation
+
+        #calculate gradients update the autoenocoder
         grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
 
@@ -113,7 +97,6 @@ class UPAE(keras.Model):
         self.total_loss_tracker.update_state(loss)
         self.loss1_tracker.update_state(loss1)
         self.loss2_tracker.update_state(loss2)
-
 
         return {
             "mse_loss: ": self.total_loss_tracker.result(),

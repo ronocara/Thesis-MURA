@@ -161,7 +161,7 @@ def model(upae=False):
         print("Vanilla AE")
         latent_enc = Flatten()(x)
         latent_enc = Dense(2048, activation='relu')(latent_enc)
-        latent_enc = Dense(latentSize)(latent_enc)
+        latent_enc = Dense(latentSize*2)(latent_enc)
     
     encoder = keras.Model(input_layer, latent_enc, name="encoder")
     
@@ -198,6 +198,8 @@ def model(upae=False):
 
     return encoder, decoder
 
+
+
 if __name__ == "__main__":
 
     #for either VAE or UPAE
@@ -214,40 +216,18 @@ if __name__ == "__main__":
     input_shape=(64,64,3)
 
     encoder, decoder = model(upae=opt.u)
-    
     optimizer = keras.optimizers.Adam(learning_rate=0.0005)
-
+    
     if opt.u is False:
         model = VAE(encoder, decoder, opt.u)
-        model.compile(optimizer=optimizer,
-                      metrics= ['accuracy',
-                                AUC(name="AUC"),
-                                Precision(name="Precision"),
-                                Recall(name='Recall'),
-                                TruePositives(name="True Positives"),
-                                FalsePositives(name="False Positives")])
-        model.fit(image_datasets[0], epochs=10, batch_size=64)
-        
     elif opt.u is True:
         model = UPAE(encoder, decoder, opt.u)
-        model.compile(optimizer=optimizer, 
-                      metrics= ['accuracy',
-                                AUC(name="AUC"),
-                                Precision(name="Precision"),
-                                Recall(name='Recall'),
-                                TruePositives(name="True Positives"),
-                                FalsePositives(name="False Positives")])
-        model.fit(image_datasets[0], epochs=10, batch_size=64)
 
-
-   
-    #validate on validation set (normal images)
-     
-
-    #test on an image
-    #print("Testing AE Model")
+    model.compile(optimizer=optimizer)
     
+    model.fit(image_datasets[0], 
+                epochs=10, 
+                batch_size=64)
 
-    #get reconstruction error using MSE
  
 
