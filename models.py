@@ -7,162 +7,120 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import TensorBoard
 import tensorflow.keras.losses as losses
+import keras.backend as K
 import tensorflow as tf
+from tensorflow import keras
 import torch
+import numpy as np
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
+# class Sampling(layers.Layer):
+#     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
 
-class Autoencoder:
-    def __init__(self, input_shape, multiplier, latentSize, upae=False):
-        super(Autoencoder, self).__init__()
+#     def call(self, inputs):
+#         z_mean, z_log_var = inputs
+#         batch = 16
+#         dim = 64
 
-        self.upae = upae #gets input if vanilla AE or UPAE
+#         #the random vector taken from mean and log var
+#         epsilon = tf.keras.backend.random_normal(shape=(batch, dim)) 
 
-        input_layer = Input(shape=input_shape)
-
-        x = Conv2D(int(16*multiplier), 4, strides=2, padding='same')(input_layer)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(int(32*multiplier), 4, strides=2, padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(int(64*multiplier), 4, strides=2, padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(int(64*multiplier), 4, strides=2, padding='same')(x)
-        x = Activation('relu')(x)
-        x = BatchNormalization()(x)
-
-        volumeSize = K.int_shape(x)
-
-        #Latent representation Encoder
-        if upae is True:
-            print("UPAE")
-            latent_enc = Flatten()(x)
-            latent_enc = Dense(2048, activation='relu')(latent_enc)
-            latent_enc = Dense(latentSize)(latent_enc)
-            
-        else:
-            print("Vanilla AE")
-            latent_enc = Flatten()(x)
-            latent_enc = Dense(2048, activation='relu')(latent_enc)
-            latent_enc = Dense(latentSize*2)(latent_enc)
-
-        self.encoder = Model(input_layer, latent_enc, name="encoder")
-
-        #Latent representation Decoder
-        print("Decoder")
-        latent_dec = Dense(2048, activation='relu')(latent_enc)
-        latent_dec = Dense(int(64 * multiplier) * volumeSize[1]*volumeSize[2])(latent_dec)
-        latent_dec = Reshape((volumeSize[1], volumeSize[2], int(64*multiplier)))(latent_dec)
-        latent_dec = BatchNormalization()(latent_dec)
-
-
-        x = Conv2DTranspose(int(64*multiplier), 4, strides=2, padding='same')(latent_dec)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        x = Conv2DTranspose(int(32*multiplier), 4, strides=2, padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        x = Conv2DTranspose(int(16*multiplier), 4, strides=2, padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        x = Conv2DTranspose(3, 4, strides=2, padding='same')(x)
-        outputs = Activation("relu")(x)
-                    
-        self.decoder = Model(latent_enc, outputs, name="decoder")
-
-
-        self.autoencoder = Model(input_layer, self.decoder(self.encoder(input_layer)),
-            name="autoencoder")
-
-    #custom loss function for UPAE during training
-    #gets noise variance and mse. reconstruction loss will be larger 
-    #in regions with high variance and smaller in regions with low variance
-    def custom_loss(self, x):
-        mean, logvariance = tf.split(x,num_or_size_splits=2,axis=1)
-        rec_err = (self.mean - x) **2
-        loss1 = tf.math.reduce_mean(tf.math.exp(-self.log_var) * rec_err) 
-        loss2 = tf.math.reduce_mean(self.log_var)
-        loss = loss1 + loss2
-        return loss
-
-
-
-    def compile_AE(self,upae=False):
-        #learning rate similar to Mao et al's
-        optimizer = Adam(learning_rate=0.0005)
-
-        def custom_loss(self, x):
-                mean, logvariance = tf.split(x,num_or_size_splits=2,axis=1)
-                rec_err = (self.mean - x) **2
-                loss1 = tf.math.reduce_mean(tf.math.exp(-self.log_var) * rec_err) 
-                loss2 = tf.math.reduce_mean(self.log_var)
-                loss = loss1 + loss2
-                return loss
-        
-        #custom loss function for UPAE with noise variance
-        if upae is True:
-            self.autoencoder.compile(optimizer = optimizer, 
-                                 loss=custom_loss, 
-                                 metrics= ['mse', 'accuracy',
-                                           AUC(name="AUC"),
-                                           Precision(name="Precision"),
-                                           Recall(name='Recall'),
-                                           TruePositives(name="True Positives"),
-                                           FalsePositives(name="False Positives")])
-            
-        #MSE loss function only for vanilla AE
-        else:
-            self.autoencoder.compile(optimizer = optimizer, 
-                                 loss='mse', 
-                                 metrics= ['accuracy',
-                                           AUC(name="AUC"),
-                                           Precision(name="Precision"),
-                                           Recall(name='Recall'),
-                                           TruePositives(name="True Positives"),
-                                           FalsePositives(name="False Positives")])
-        return
-        
-
-
-    def fit_AE(self, x_train, y_train, x_test, epochs = 1, batch_size = 32 ):
-        log_dir = "logs/fit/"
-        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-
-        return self.autoencoder.fit(x_train, 
-                                    y_train, 
-                                    epochs = epochs, 
-                                    batch_size=batch_size, 
-                                    validation_data=(x_test, x_test), 
-                                    callbacks=[tensorboard_callback])
-
-    
-    #evaluate model performance using validation set
-    def validate(self, x_test, batch_size, upae=False):
-        if upae is True:
-            score = self.autoencoder.evaluate(x_test, x_test, batch_size)
-            print('MSE + Noise Variance', score[0])
-            print('Accuracy', score[1])
-            print('AUC', score[2])
-            print('Precision', score[3])
-        else:
-            score = self.autoencoder.evaluate(x_test, x_test, batch_size)
-            print('MSE', score[0])
-            print('Accuracy', score[1])
-            print('AUC', score[2])
-            print('Precision', score[3])
-
-        return 
+#         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
     
 
+class VAE(keras.Model):
+    def __init__(self, encoder, decoder, upae=False, **kwargs):
+        super().__init__(**kwargs)
+        self.encoder = encoder
+        self.decoder = decoder
+        self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
+        self.reconstruction_loss_tracker = keras.metrics.Mean(
+            name="reconstruction_loss"
+        )
+
+
+    @property
+    def metrics(self):
+        return [
+            self.total_loss_tracker
+        ]
+
+    #will run during fit()
+    def train_step(self, data):
+        with tf.GradientTape() as tape:
+            print("Vanilla Loss")
+            encoder_output  = self.encoder(data)
+            reconstruction = self.decoder(encoder_output)
+
+            #getting mean squared error after making data type equal
+            mse_loss = tf.reduce_mean(tf.square(tf.cast(data, tf.float32) - tf.cast(reconstruction, tf.float32)))
+            total_loss = mse_loss
+
+        #calculate gradients using back propagation
+        grads = tape.gradient(total_loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+
+        #updating the metrics trackers 
+        self.total_loss_tracker.update_state(total_loss)
+
+        return {
+            "mse_loss": self.total_loss_tracker.result(),
+        }
+
+class UPAE(keras.Model):
+    def __init__(self, encoder, decoder, upae=False, **kwargs):
+        super().__init__(**kwargs)
+        self.encoder = encoder
+        self.decoder = decoder
+        self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
+        self.loss1_tracker = keras.metrics.Mean(name="loss1")
+        self.loss2_tracker = keras.metrics.Mean(name="loss2")
+
+    @property
+    def metrics(self):
+        return [
+            self.total_loss_tracker,
+            self.loss1_tracker,
+            self.loss2_tracker
+
+
+        ]
+
+    #will run during fit()
+    def train_step(self, data):
+        with tf.GradientTape() as tape:
             
+            print("UPAE Loss")
+            encoder_output  = self.encoder(data)
+            reconstruction, z_mean, z_log_var = self.decoder(encoder_output)
+
+            rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
+            loss1 = K.mean(K.exp(-z_log_var)*rec_err)
+            loss2 = K.mean(z_log_var)
+            loss = loss1 + loss2
+            
+               
+
+        #calculate gradients using back propagation
+        grads = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+
+        #updating the metrics trackers 
+        self.total_loss_tracker.update_state(loss)
+        self.loss1_tracker.update_state(loss1)
+        self.loss2_tracker.update_state(loss2)
+
+
+        return {
+            "mse_loss: ": self.total_loss_tracker.result(),
+            "loss1: ": self.loss1_tracker.result(),
+            "loss2: ": self.loss2_tracker.result()
+        }
+
+
+
+        
