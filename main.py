@@ -151,17 +151,9 @@ def model(upae=False):
     x = BatchNormalization()(x)
 
     #Latent representation Encoder
-    if upae is True:
-        print("UPAE")
-        latent_enc = Flatten()(x)
-        latent_enc = Dense(2048, activation='relu')(latent_enc)
-        latent_enc = Dense(latentSize)(latent_enc)
-
-    else:
-        print("Vanilla AE")
-        latent_enc = Flatten()(x)
-        latent_enc = Dense(2048, activation='relu')(latent_enc)
-        latent_enc = Dense(latentSize*2)(latent_enc)
+    latent_enc = Flatten()(x)
+    latent_enc = Dense(2048, activation='relu')(latent_enc)
+    latent_enc = Dense(latentSize)(latent_enc)
     
     encoder = keras.Model(input_layer, latent_enc, name="encoder")
     
@@ -193,11 +185,10 @@ def model(upae=False):
     z_mean = layers.Dense(3, name="z_mean")(outputs)
     z_log_var = layers.Dense(3, name="z_log_var")(outputs)
     # z = Sampling()([z_mean, z_log_var])
-
+ 
     decoder = keras.Model(latent_enc, [outputs, z_mean, z_log_var] , name="decoder")
 
     return encoder, decoder
-
 
 
 if __name__ == "__main__":
@@ -225,9 +216,10 @@ if __name__ == "__main__":
 
     model.compile(optimizer=optimizer)
     
+    #training on training set.
     model.fit(image_datasets[0], 
-                epochs=10, 
-                batch_size=64)
+                epochs=1, 
+                batch_size=batch_size)
 
- 
-
+    #validation 
+    score = model.evaluate(image_datasets[1], batch_size=batch_size)
