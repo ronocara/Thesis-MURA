@@ -25,6 +25,12 @@ training_set = 0.4
 validation_set = 0.05
 testing_set = 0.55
 
+# max threads to be used
+num_processes = 8
+# num of epochs
+epochs = 1
+# num of batch size
+batch_size = 64
 
 # Augmentation parameters
 training_augmentation = {'augment_hflip': False,
@@ -40,13 +46,6 @@ validation_augmentation = {'augment_hflip': False,
  'max_rotation': 0}
 
 augmentations = [training_augmentation, validation_augmentation, testing_augmentation]
-
-# max threads to be used
-num_processes = 8
-# num of epochs
-epochs = 1
-# num of batch size
-batch_size = 64
 
 # Applies various data_cleaning methods chosen from data_cleaning.py
 def apply_data_cleaning(image):
@@ -218,7 +217,7 @@ if __name__ == "__main__":
     
     #training on training set.
     model.fit(image_datasets[0], 
-                epochs=1, 
+                epochs=epochs, 
                 batch_size=batch_size)
 
     #validation 
