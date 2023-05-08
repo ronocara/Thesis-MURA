@@ -33,7 +33,8 @@ class VAE(keras.Model):
     @property
     def metrics(self):
         return [
-            self.total_loss_tracker
+            self.total_loss_tracker,
+            self.reconstruction_loss_tracker
         ]
 
     #will run during fit()
@@ -59,9 +60,11 @@ class VAE(keras.Model):
 
         #updating the metrics trackers 
         self.total_loss_tracker.update_state(total_loss)
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
 
         return {
-            "mse_loss": self.total_loss_tracker.result(),
+            "mse_loss": self.total_loss_tracker.result() , 
+            "binary_crossentropy: ": self.recontruction_loss_tracker.result()
         }
     
     def test_step(self, data):
@@ -80,10 +83,12 @@ class VAE(keras.Model):
         total_loss = mse_loss
        
         #updating the metrics trackers 
-        self.total_loss_tracker.update_state(total_loss)
+        self.total_loss_tracker.update_state(total_loss), 
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
 
         return {
             "mse_loss": self.total_loss_tracker.result(),
+            "binary_crossentropy: ": self.recontruction_loss_tracker.result()
         }
     
         #will run during model.predict()
@@ -115,8 +120,8 @@ class UPAE(keras.Model):
 
     #will run during model.fit()
     def train_step(self, data):
+        recon_loss_train = []
         with tf.GradientTape() as tape:
-            
             print("UPAE Training")
             encoder_output  = self.encoder(data)
             reconstruction, z_mean, z_log_var = self.decoder(encoder_output)
@@ -133,6 +138,7 @@ class UPAE(keras.Model):
             loss2 = K.mean(z_log_var)
             loss = loss1 + loss2
 
+            recon_loss_train.append(reconstruction_loss)
 
         #calculate gradients update the weights of the model during backpropagation
         grads = tape.gradient(loss, self.trainable_weights)
@@ -146,7 +152,7 @@ class UPAE(keras.Model):
 
         #outputs every epoch
         return {
-            "mse_loss: ": self.total_loss_tracker.result(),
+            "total_loss: ": self.total_loss_tracker.result(),
             "loss1: ": self.loss1_tracker.result(),
             "loss2: ": self.loss2_tracker.result(),
             "binary_crossentropy: ": self.recontruction_loss_tracker.result()
@@ -155,6 +161,7 @@ class UPAE(keras.Model):
     #will run during model.evaluate()
     def test_step(self, data):
         print("UPAE Validation")
+        recon_loss_valid = []
         encoder_output  = self.encoder(data)
         reconstruction, z_mean, z_log_var = self.decoder(encoder_output)
 
@@ -169,6 +176,8 @@ class UPAE(keras.Model):
         loss2 = K.mean(z_log_var)
         loss = loss1 + loss2
 
+        recon_loss_valid.append(reconstruction_loss)
+
         #updating the metrics trackers 
         self.recontruction_loss_tracker.update_state(reconstruction_loss)
         self.total_loss_tracker.update_state(loss)
@@ -176,7 +185,7 @@ class UPAE(keras.Model):
         self.loss2_tracker.update_state(loss2)
 
         return {
-            "mse_loss: ": self.total_loss_tracker.result(),
+            "total_loss: ": self.total_loss_tracker.result(),
             "loss1: ": self.loss1_tracker.result(),
             "loss2: ": self.loss2_tracker.result(),
             "binary_crossentropy: ": self.recontruction_loss_tracker.result()

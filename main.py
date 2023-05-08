@@ -11,6 +11,10 @@ from math import ceil, floor
 from os import path, mkdir
 from argparse import ArgumentParser
 from models import *
+from tensorflow.keras.utils import plot_model
+from keras.callbacks import History 
+
+
 
 
 
@@ -28,7 +32,7 @@ testing_set = 0.55
 # max threads to be used
 num_processes = 8
 # num of epochs
-epochs = 1
+epochs = 10
 # num of batch size
 batch_size = 64
 
@@ -213,12 +217,18 @@ if __name__ == "__main__":
     elif opt.u is True:
         model = UPAE(encoder, decoder, opt.u)
 
-    model.compile(optimizer=optimizer)
+    model.compile(optimizer=optimizer,)
     
+    # plot_model(model, 'autoencoder_compress.png', show_shapes=True)
+
     #training on training set.
-    model.fit(image_datasets[0], 
+    history_train = model.fit(image_datasets[0], 
+                epochs=epochs, 
+                batch_size=batch_size)
+    
+    history_valid = model.fit(image_datasets[1], 
                 epochs=epochs, 
                 batch_size=batch_size)
 
     #validation 
-    score = model.evaluate(image_datasets[1], batch_size=batch_size)
+    # history_valid = model.evaluate(image_datasets[1], batch_size=batch_size)
