@@ -9,10 +9,19 @@ Train UPAE <br>
 
 
 ## cara-main.ipynb (current progress)
-- calls main.py for training loop. 
-- working UPAE and Vanilla training loop <br>
-- working validation and testing. <br> 
-- unfinished with peroformance metrics
+
+- :heavy_check_mark:  UPAE and Vanilla training loop <br>
+- :heavy_check_mark:  validation with performance metrics (learning curve and validation loss) <br> 
+    to interpret curves use [this](https://machinelearningmastery.com/learning-curves-for-diagnosing-machine-learning-model-performance/)
+    <br>
+- :heavy_check_mark: testing - show reconstructed image <br>
+- :o:	Testing with performance metrics (AUC, F1, EER) <br>	
+- :o: save each reconstruction in training loop to make gif on training progress <br>
+- :o: in testing, get image highlighting : (1) variance -mse (2) pixel-wise uncertainty (3) area og abnormality  <br>
+- :o: in testing, show difference between reconstruction image output of normal and abnormal <br>
+- :o: implement callbacks to use tensorboard. basing on [this](https://keras.io/guides/writing_your_own_callbacks/)
+- :o: use callback to automatically save model / best model. [reference](https://keras.io/api/callbacks/model_checkpoint/#:~:text=Callback%20to%20save%20the%20Keras,training%20from%20the%20state%20saved.)
+
 
 ### references
 <br>

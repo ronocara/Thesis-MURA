@@ -217,7 +217,8 @@ if __name__ == "__main__":
     elif opt.u is True:
         model = UPAE(encoder, decoder, opt.u)
 
-    model.compile(optimizer=optimizer,)
+    model.compile(optimizer= optimizer
+                  ,metrics=[tf.keras.metrics.Accuracy()])
     
     # plot_model(model, 'autoencoder_compress.png', show_shapes=True)
 
