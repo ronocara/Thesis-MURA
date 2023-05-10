@@ -16,7 +16,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+class Sampling(layers.Layer):
+    """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
 
+    def call(self, inputs):
+        z_mean, z_log_var = inputs
+        batch = tf.shape(z_mean)[0]
+        dim = tf.shape(z_mean)[1]
+        epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
+        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+    
 class VAE(keras.Model):
     def __init__(self, encoder, decoder, upae=False, **kwargs):
         super().__init__(**kwargs)
@@ -63,7 +72,7 @@ class VAE(keras.Model):
 
         return {
             "mse_loss": self.total_loss_tracker.result() , 
-            "binary_crossentropy: ": self.recontruction_loss_tracker.result()
+            "binary_crossentropy: ": self.reconstruction_loss_tracker.result()
         }
     
     def test_step(self, data):
@@ -123,7 +132,7 @@ class UPAE(keras.Model):
     def train_step(self, data):
         with tf.GradientTape() as tape:
             print("UPAE Training")
-            # train_accuracy_results = []
+
             encoder_output  = self.encoder(data)
             reconstruction, z_mean, z_log_var = self.decoder(encoder_output)
 
@@ -133,11 +142,6 @@ class UPAE(keras.Model):
                     keras.losses.binary_crossentropy(data, reconstruction), axis=(1, 2)
                 )
             )
-
-            #to be used for learning curve
-            #accuracy
-            # accuracy = accuracy.update_state(data, reconstruction)
-            # train_accuracy_results.append(accuracy)
 
             rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
             loss1 = K.mean(K.exp(-z_log_var)*rec_err)
@@ -165,30 +169,11 @@ class UPAE(keras.Model):
         }
 
     #will run during model.evaluate()
-    # def test_step(self, data):
-        # print("UPAE Validation")
-        # recon_loss_valid = []
-        # encoder_output  = self.encoder(data)
-        # reconstruction, z_mean, z_log_var = self.decoder(encoder_output)
-
-        # reconstruction_loss = tf.reduce_mean(
-        #     tf.reduce_sum(
-        #         keras.losses.binary_crossentropy(data, reconstruction), axis=(1, 2)
-        #     )
-        # )
-
-        # rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
-        # loss1 = K.mean(K.exp(-z_log_var)*rec_err)
-        # loss2 = K.mean(z_log_var)
-        # loss = loss1 + loss2
-
-        # recon_loss_valid.append(reconstruction_loss)
-
+    def test_step(self, data):
+        print("UPAE Validation")
+     
         # #updating the metrics trackers 
-        # self.recontruction_loss_tracker.update_state(reconstruction_loss)
-        # self.total_loss_tracker.update_state(loss)
-        # self.loss1_tracker.update_state(loss1)
-        # self.loss2_tracker.update_state(loss2)
+
 
         # return {
         #     "total_loss: ": self.total_loss_tracker.result(),

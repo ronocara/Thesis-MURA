@@ -23,6 +23,22 @@ Train UPAE <br>
 - :o: use callback to automatically save model / best model. [reference](https://keras.io/api/callbacks/model_checkpoint/#:~:text=Callback%20to%20save%20the%20Keras,training%20from%20the%20state%20saved.)
 
 
+### Autoencoder Structure
+encoder:
+Latent_enc: did not seperate anymore
+Latent_dec:
+decoder:
+
+### Vanilla AE
+- computed for MSE between input and reconstruction. 
+- 
+
+### UPAE
+- got mean, and logvariance after decoder. not in encoder. 
+    - logvar - differenc
+- 
+
+
 ### references
 <br>
 

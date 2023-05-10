@@ -157,9 +157,14 @@ def model(upae=False):
     latent_enc = Flatten()(x)
     latent_enc = Dense(2048, activation='relu')(latent_enc)
     latent_enc = Dense(latentSize)(latent_enc)
+    # z_mean = layers.Dense(3, name="z_mean")(latent_enc)
+    # z_log_var = layers.Dense(3, name="z_log_var")(latent_enc)
+    # z = Sampling()([z_mean, z_log_var])
     
+
+    # encoder = keras.Model(input_layer, latent_enc, name="encoder")
     encoder = keras.Model(input_layer, latent_enc, name="encoder")
-    
+
     volumeSize = K.int_shape(x)
     print("Decoder")
     latent_dec = Dense(2048, activation='relu')(latent_enc)
@@ -217,8 +222,7 @@ if __name__ == "__main__":
     elif opt.u is True:
         model = UPAE(encoder, decoder, opt.u)
 
-    model.compile(optimizer= optimizer
-                  ,metrics=[tf.keras.metrics.Accuracy()])
+    model.compile(optimizer= optimizer)
     
     # plot_model(model, 'autoencoder_compress.png', show_shapes=True)
 
@@ -227,6 +231,7 @@ if __name__ == "__main__":
                 epochs=epochs, 
                 batch_size=batch_size)
     
+    #training on validation set. to valiate on new set of data. 
     history_valid = model.fit(image_datasets[1], 
                 epochs=epochs, 
                 batch_size=batch_size)
