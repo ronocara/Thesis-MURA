@@ -72,7 +72,10 @@ Train UPAE <br>
     - cannot get difference between z and output if z is taken from encoder
     - bottle neck z score has a different size. it has lower dimensionality
     - thus got mean and logvar after decoder. 
-- logvar = difference or variance
+<br>
+- mean = mean of the distribution of values in the latent space
+- logvar = variance of the distribution of values
+<br><br>
 
     `
     rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
@@ -80,9 +83,7 @@ Train UPAE <br>
             loss2 = K.mean(z_log_var)
             loss = loss1 + loss2
     `
-
 <br>
-
 - loss 1 
     "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction errors" - mao et al. <br>
 
