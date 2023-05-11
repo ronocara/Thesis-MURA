@@ -11,9 +11,8 @@ from math import ceil, floor
 from os import path, mkdir
 from argparse import ArgumentParser
 from models import *
-from tensorflow.keras.utils import plot_model
 from keras.callbacks import History 
-
+from validation import *
 
 
 
@@ -32,7 +31,7 @@ testing_set = 0.55
 # max threads to be used
 num_processes = 8
 # num of epochs
-epochs = 10
+epochs = 3
 # num of batch size
 batch_size = 64
 
@@ -132,81 +131,6 @@ def data_preparation():
 
     return image_datasets;
 
-def model(upae=False):
-    print("Training AE model")
-    upae = upae #gets input if vanilla AE or UPAE
-    input_layer = keras.Input(shape=input_shape)
-
-    x = Conv2D(int(16*multiplier), 4, strides=2, padding='same')(input_layer)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(int(32*multiplier), 4, strides=2, padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(int(64*multiplier), 4, strides=2, padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv2D(int(64*multiplier), 4, strides=2, padding='same')(x)
-    x = Activation('relu')(x)
-    x = BatchNormalization()(x)
-
-
-    #Latent representation Encoder
-    if upae is True:
-        print("UPAE")
-        latent_enc = Flatten()(x)
-        latent_enc = Dense(2048, activation='relu')(latent_enc)
-        latent_enc = Dense(latentSize)(latent_enc)
-        
-    else:
-        print("Vanilla AE")
-        latent_enc = Flatten()(x)
-        latent_enc = Dense(2048, activation='relu')(latent_enc)
-        latent_enc = Dense(latentSize*2)(latent_enc)
-
-
-    # z_mean = layers.Dense(3, name="z_mean")(latent_enc)
-    # z_log_var = layers.Dense(3, name="z_log_var")(latent_enc)
-    # z = Sampling()([z_mean, z_log_var])
-            
-    encoder = keras.Model(input_layer, latent_enc, name="encoder")
-
-    #preparing for decoder
-    volumeSize = K.int_shape(x)
-    print("Decoder")
-    latent_dec = Dense(2048, activation='relu')(latent_enc)
-    latent_dec = Dense(int(64 * multiplier) * volumeSize[1]*volumeSize[2])(latent_dec)
-    latent_dec = Reshape((volumeSize[1], volumeSize[2], int(64*multiplier)))(latent_dec)
-    latent_dec = BatchNormalization()(latent_dec)
-
-    #decoder
-    x = Conv2DTranspose(int(64*multiplier), 4, strides=2, padding='same')(latent_dec)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv2DTranspose(int(32*multiplier), 4, strides=2, padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv2DTranspose(int(16*multiplier), 4, strides=2, padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv2DTranspose(3, 4, strides=2, padding='same')(x)
-    outputs = Activation("relu")(x)
-
-    #changed it to 3 to be same dimension with input data
-    z_mean = layers.Dense(3, name="z_mean")(outputs)
-    z_log_var = layers.Dense(3, name="z_log_var")(outputs)
-    # z = Sampling()([z_mean, z_log_var])
- 
-    decoder = keras.Model(latent_enc, [outputs, z_mean, z_log_var] , name="decoder")
-
-    return encoder, decoder
-
 
 if __name__ == "__main__":
 
@@ -223,13 +147,14 @@ if __name__ == "__main__":
     latentSize= 16
     input_shape=(64,64,3)
 
-    encoder, decoder = model(upae=opt.u)
+    # encoder, decoder = model(upae=opt.u)
+    AE = encoder_decoder()
     optimizer = keras.optimizers.Adam(learning_rate=0.0005)
     
     if opt.u is False:
-        model = VAE(encoder, decoder, opt.u)
+        model = VAE(AE.encoder, AE.decoder, opt.u)
     elif opt.u is True:
-        model = UPAE(encoder, decoder, opt.u)
+        model = UPAE(AE.encoder, AE.decoder, opt.u)
 
     model.compile(optimizer= optimizer)
     
@@ -238,12 +163,14 @@ if __name__ == "__main__":
     #training on training set.
     history_train = model.fit(image_datasets[0], 
                 epochs=epochs, 
+                validation_split=0.15, 
                 batch_size=batch_size)
     
     #training on validation set. to valiate on new set of data. 
-    history_valid = model.fit(image_datasets[1], 
-                epochs=epochs, 
+    history_valid = model.evaluate(image_datasets[1], 
                 batch_size=batch_size)
 
     #validation 
-    # history_valid = model.evaluate(image_datasets[1], batch_size=batch_size)
+    valid_plot = validation_plots(history_train)
+    #  valid_plot.learning_curve()
+    #  valid_plot.valid_loss()
