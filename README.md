@@ -86,11 +86,11 @@ Train UPAE <br>
     `
 <br> 
 
-    - loss 1 
-        "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction errors" - mao et al. <br>
+- loss 1 
+    "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction errors" - mao et al. <br>
 
-    - loss2  
-        "...will prevent the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
+- loss2  
+    "...will prevent the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
 
 
 <br>
