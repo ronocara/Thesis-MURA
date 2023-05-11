@@ -153,18 +153,28 @@ def model(upae=False):
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
+
     #Latent representation Encoder
-    latent_enc = Flatten()(x)
-    latent_enc = Dense(2048, activation='relu')(latent_enc)
-    latent_enc = Dense(latentSize)(latent_enc)
+    if upae is True:
+        print("UPAE")
+        latent_enc = Flatten()(x)
+        latent_enc = Dense(2048, activation='relu')(latent_enc)
+        latent_enc = Dense(latentSize)(latent_enc)
+        
+    else:
+        print("Vanilla AE")
+        latent_enc = Flatten()(x)
+        latent_enc = Dense(2048, activation='relu')(latent_enc)
+        latent_enc = Dense(latentSize*2)(latent_enc)
+
+
     # z_mean = layers.Dense(3, name="z_mean")(latent_enc)
     # z_log_var = layers.Dense(3, name="z_log_var")(latent_enc)
     # z = Sampling()([z_mean, z_log_var])
-    
-
-    # encoder = keras.Model(input_layer, latent_enc, name="encoder")
+            
     encoder = keras.Model(input_layer, latent_enc, name="encoder")
 
+    #preparing for decoder
     volumeSize = K.int_shape(x)
     print("Decoder")
     latent_dec = Dense(2048, activation='relu')(latent_enc)
@@ -173,7 +183,6 @@ def model(upae=False):
     latent_dec = BatchNormalization()(latent_dec)
 
     #decoder
-    
     x = Conv2DTranspose(int(64*multiplier), 4, strides=2, padding='same')(latent_dec)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)

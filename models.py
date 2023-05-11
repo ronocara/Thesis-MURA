@@ -18,14 +18,18 @@ import numpy as np
 
 class Sampling(layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
+    #this helps autoencoder to learn different sample from same image
+    #like mixing it up so when fed a different version of the same humerus it can still learn it right
 
     def call(self, inputs):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
         dim = tf.shape(z_mean)[1]
-        epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
+        epsilon = tf.keras.backend.random_normal(shape=(batch, 16))
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
     
+
+
 class VAE(keras.Model):
     def __init__(self, encoder, decoder, upae=False, **kwargs):
         super().__init__(**kwargs)
@@ -75,29 +79,7 @@ class VAE(keras.Model):
             "binary_crossentropy: ": self.reconstruction_loss_tracker.result()
         }
     
-    def test_step(self, data):
-        print("Vanilla Validation")
-        encoder_output  = self.encoder(data)
-        reconstruction = self.decoder(encoder_output)
 
-        reconstruction_loss = tf.reduce_mean(
-            tf.reduce_sum(
-                keras.losses.binary_crossentropy(data, reconstruction), axis=(1, 2)
-            )
-        )
-
-        #getting mean squared error after making data type equal
-        mse_loss = tf.reduce_mean(tf.square(tf.cast(data, tf.float32) - tf.cast(reconstruction, tf.float32)))
-        total_loss = mse_loss
-       
-        #updating the metrics trackers 
-        self.total_loss_tracker.update_state(total_loss), 
-        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
-
-        return {
-            "mse_loss": self.total_loss_tracker.result(),
-            "binary_crossentropy: ": self.recontruction_loss_tracker.result()
-        }
     
         #will run during model.predict()
     def predict(self, data):
@@ -172,9 +154,6 @@ class UPAE(keras.Model):
     def test_step(self, data):
         print("UPAE Validation")
      
-        # #updating the metrics trackers 
-
-
         # return {
         #     "total_loss: ": self.total_loss_tracker.result(),
         #     "loss1: ": self.loss1_tracker.result(),
