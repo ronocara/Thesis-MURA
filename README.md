@@ -25,50 +25,62 @@ Train UPAE <br>
 
 
 ### Autoencoder Structure
-encoder: 16-32-64-64 channel sizes <br>
-Latent_enc: seperated na for UPAE and vanilla <br>
-Latent_dec: prepares data from latent_enc for decoder<br>
-decoder: 64-64-32-16<br><br>
+- encoder: 16-32-64-64 channel sizes <br>
+- Latent_enc: seperated na for UPAE and vanilla <br>
+- Latent_dec: prepares data from latent_enc for decoder<br>
+- decoder: 64-64-32-16<br><br>
 
 1. Training :
-`history_train = model.fit(image_datasets[0], 
-                epochs=epochs, 
-                batch_size=batch_size)` 
-<br>
 
+    `history_train = model.fit(image_datasets[0], 
+                    epochs=epochs, 
+                    batch_size=batch_size)` 
+<br>
+<br>
 2. Validation:
-`history_train = model.fit(image_datasets[1], 
-                epochs=epochs, 
-                batch_size=batch_size)`
+
+    `history_train = model.fit(image_datasets[1], 
+                    epochs=epochs, 
+                    batch_size=batch_size)`
 <br>
 - note: training and validation both using model.fit() since we're checking lang naman the performance on a different dataset. <br>
 - model perfromance checked using validation vs training loss (binary cross entropy) and learning curve (accuracy)
 <br>
-
+<br>
 
  3. Testing:
- `generated = model.predict(input_images)`
+
+    `generated = model.predict(input_images)`
 
 - this will get the variance of the output (z_logvar). need to get image of this too for results presentation<br>
 - compute for abnormality score (recons error normalized with variance)
 <br>
 
+<br>
+
+
 ### Vanilla AE loss function
 - computed for MSE between input and reconstruction. <br>
 - gets diff bw input and output -> get square of score -> get mean <br>
 
-`mse_loss = tf.reduce_mean(tf.square(tf.cast(data, tf.float32) - tf.cast(reconstruction, tf.float32)))`
+    `mse_loss = tf.reduce_mean(tf.square(tf.cast(data, tf.float32) - tf.cast(reconstruction, tf.float32)))`
 
 <br>
 
 ### UPAE loss function
 - got mean, and logvariance after decoder. not in encoder. <br>
+    - cannot get difference between z and output if z is taken from encoder
+    - bottle neck z score has a different size. it has lower dimensionality
+    - thus got mean and logvar after decoder. 
 - logvar = difference or variance
 
-`rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
-        loss1 = K.mean(K.exp(-z_log_var)*rec_err)
-        loss2 = K.mean(z_log_var)
-        loss = loss1 + loss2`
+    `
+    rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
+            loss1 = K.mean(K.exp(-z_log_var)*rec_err)
+            loss2 = K.mean(z_log_var)
+            loss = loss1 + loss2
+    `
+
 <br>
 
 - loss 1 
@@ -77,6 +89,8 @@ decoder: 64-64-32-16<br><br>
 - loss2  
     "...will prevent the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
 
+
+<br>
 
 ### References
 
