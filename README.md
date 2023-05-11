@@ -37,6 +37,7 @@ Train UPAE <br>
                     batch_size=batch_size)` 
 <br>
 <br>
+
 2. Validation:
 
     `history_train = model.fit(image_datasets[1], 
