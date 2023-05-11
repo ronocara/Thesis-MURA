@@ -35,8 +35,7 @@ Train UPAE <br>
     `history_train = model.fit(image_datasets[0], 
                     epochs=epochs, 
                     batch_size=batch_size)` 
-<br>
-<br>
+
 
 2. Validation:
 
@@ -74,9 +73,10 @@ Train UPAE <br>
     - bottle neck z score has a different size. it has lower dimensionality
     - thus got mean and logvar after decoder. 
 <br>
-- mean = mean of the distribution of values in the latent space
+- mean = mean of the distribution of values in the latent space <br>
 - logvar = variance of the distribution of values
-<br><br>
+<br>
+
 
     `
     rec_err = (tf.cast(z_mean, tf.float32) - tf.cast(data, tf.float32)) ** 2
@@ -84,12 +84,13 @@ Train UPAE <br>
             loss2 = K.mean(z_log_var)
             loss = loss1 + loss2
     `
-<br>
-- loss 1 
-    "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction errors" - mao et al. <br>
+<br> 
 
-- loss2  
-    "...will prevent the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
+    - loss 1 
+        "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction errors" - mao et al. <br>
+
+    - loss2  
+        "...will prevent the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
 
 
 <br>
