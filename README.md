@@ -35,6 +35,7 @@ decoder: 64-64-32-16<br><br>
                 epochs=epochs, 
                 batch_size=batch_size)` 
 <br>
+
 2. Validation:
 `history_train = model.fit(image_datasets[1], 
                 epochs=epochs, 
@@ -43,10 +44,11 @@ decoder: 64-64-32-16<br><br>
  - note: training and validation both using model.fit() since we're checking lang naman the performance on a different dataset. <br>
  - model perfromance checked using validation vs training loss (binary cross entropy) and learning curve (accuracy)
 <br>
+
  3. Testing:
  `input_images= image_datasets[2] 
     generated = model.predict(input_images)`
-    <br>
+<br>
  - this will get the variance of the output (z_logvar). need to get image of this too for results presentation<br>
  - compute for abnormality score (recons error normalized with variance)
 <br>
@@ -70,14 +72,16 @@ mse_loss = tf.reduce_mean(tf.square(tf.cast(data, tf.float32) - tf.cast(reconstr
             loss2 = K.mean(z_log_var)
             loss = loss1 + loss2`
 <br>
-- loss 1 = "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction
-errors" - mao et al. <br>
-- loss2 = "...will prevent
-the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
+
+- loss 1 
+    "..discourages the auto-encoder from predicting very small uncertainty values for those pixels with higher reconstruction errors" - mao et al. <br>
+
+- loss2  
+    "...will prevent the auto-encoder from predicting larger uncertainty for all reconstructed pixels." mao et al. <br>
 
 
-### references
 <br>
+### references
 
 [reference for AE](https://pyimagesearch.com/2020/02/17/autoencoders-with-keras-tensorflow-and-deep-learning/)
 
